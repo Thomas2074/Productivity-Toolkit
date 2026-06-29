@@ -68,12 +68,6 @@ The userscript should remain single-file unless the project direction changes.
 
 ## Testing
 
-At minimum, run a syntax check after edits:
-
-```powershell
-& 'C:\Users\Thomas\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin\node.exe' --check 'productivity_toolkit.user.js'
-```
-
 Recommended manual checks:
 
 - Panel opens, closes, drags, and resets position.
