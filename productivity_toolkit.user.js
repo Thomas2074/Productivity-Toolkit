@@ -4,6 +4,8 @@
 // @version      0.2.8
 // @description  Local-first browser productivity suite with notes, snippets, focus blocking, timer, reports, highlights, shortcuts, site rules, and backup/restore.
 // @author       Productivity Toolkit
+// Author GitHub: https://github.com/Thomas2074
+// Author LinkedIn: https://www.linkedin.com/in/thomas-crutchfield-780957192/
 // @match        http://*/*
 // @match        https://*/*
 // @grant        GM_getValue
