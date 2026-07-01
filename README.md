@@ -2,7 +2,7 @@
 
 Productivity Toolkit is a local-first Tampermonkey userscript that adds a small browser productivity suite to normal websites. It keeps settings and user data in Tampermonkey storage and does not require an external server or cloud service.
 
-Current version: `0.2.6`
+Current version: `0.2.7`
 
 ## Features
 
@@ -66,6 +66,7 @@ The userscript should remain single-file unless the project direction changes.
 - Keep UI styles scoped under the toolkit root IDs/classes.
 - Be careful with event delegation so checkboxes and form controls keep native behavior.
 - Avoid duplicate intervals, duplicate panel instances, and duplicate toast actions.
+- Avoid injecting into iframes and cap expensive page scans so the toolkit stays responsive on large pages.
 - Bump the userscript `@version` and internal `APP.version` when changing behavior.
 
 ## Testing

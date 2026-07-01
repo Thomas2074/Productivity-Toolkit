@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Productivity Toolkit
 // @namespace    local.productivity-toolkit
-// @version      0.2.6
+// @version      0.2.7
 // @description  Local-first browser productivity suite with notes, snippets, focus blocking, timer, reports, highlights, shortcuts, site rules, and backup/restore.
 // @author       Productivity Toolkit
 // @match        http://*/*
@@ -21,14 +21,24 @@
   }
   window.__PRODUCTIVITY_TOOLKIT_BOOTED__ = true;
 
+  try {
+    if (window.top !== window.self) {
+      return;
+    }
+  } catch (error) {
+    return;
+  }
+
   const APP = {
-    version: "0.2.6",
+    version: "0.2.7",
     storageKey: "productivity_toolkit_state_v1",
+    styleId: "ptk-style",
     rootId: "ptk-root",
     disabledId: "ptk-disabled-launcher",
     focusOverlayId: "ptk-focus-overlay",
     highlightClass: "ptk-highlight",
-    maxHighlights: 500
+    maxHighlights: 500,
+    maxHighlightTextNodes: 12000
   };
 
   const FEATURE_LABELS = {
@@ -86,6 +96,7 @@
   let lastTrackedAt = Date.now();
   let lastTimeSaveAt = Date.now();
   let dragState = null;
+  let pendingSaveTimer = null;
 
   function createDefaultState() {
     return {
@@ -324,6 +335,10 @@
   }
 
   function saveState() {
+    if (pendingSaveTimer) {
+      window.clearTimeout(pendingSaveTimer);
+      pendingSaveTimer = null;
+    }
     state.appVersion = APP.version;
     try {
       if (typeof GM_setValue === "function") {
@@ -342,8 +357,22 @@
     }
   }
 
+  function saveStateSoon() {
+    if (pendingSaveTimer) {
+      window.clearTimeout(pendingSaveTimer);
+    }
+    pendingSaveTimer = window.setTimeout(() => {
+      pendingSaveTimer = null;
+      saveState();
+    }, 350);
+  }
+
   function bootWhenReady() {
     if (!document.documentElement) {
+      return;
+    }
+    if (!document.body) {
+      window.setTimeout(bootWhenReady, 50);
       return;
     }
     addStyles();
@@ -368,8 +397,11 @@
     if (toolkitStarted || isToolkitDisabledForCurrentDomain()) {
       return;
     }
+    if (!createRoot()) {
+      window.setTimeout(startToolkit, 50);
+      return;
+    }
     toolkitStarted = true;
-    createRoot();
     applyPanelPosition();
     renderPanel();
     startIntervals();
@@ -414,7 +446,7 @@
 
   function createRoot() {
     if (!document.body) {
-      return;
+      return false;
     }
     const existingRoot = document.getElementById(APP.rootId);
     if (existingRoot) {
@@ -441,6 +473,7 @@
     root.addEventListener("input", handleRootInput);
     root.addEventListener("change", handleRootChange);
     root.addEventListener("pointerdown", handleDragStart);
+    return true;
   }
 
   function renderToolboxIcon() {
@@ -904,7 +937,7 @@
 
     if (target.dataset.field === "notes") {
       state.notes = target.value;
-      saveState();
+      saveStateSoon();
       return;
     }
 
@@ -1708,24 +1741,25 @@
       return 0;
     }
     const regex = new RegExp(escapeRegExp(phrase), caseSensitive ? "g" : "gi");
-    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
-      acceptNode(node) {
-        if (!node.nodeValue || !node.nodeValue.trim()) {
-          return NodeFilter.FILTER_REJECT;
-        }
-        const parent = node.parentElement;
-        if (!parent || shouldSkipHighlightParent(parent)) {
-          return NodeFilter.FILTER_REJECT;
-        }
-        regex.lastIndex = 0;
-        return regex.test(node.nodeValue) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
-      }
-    });
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
     const nodes = [];
-    while (nodes.length < APP.maxHighlights) {
+    let scannedTextNodes = 0;
+    while (nodes.length < APP.maxHighlights && scannedTextNodes < APP.maxHighlightTextNodes) {
       const node = walker.nextNode();
       if (!node) {
         break;
+      }
+      scannedTextNodes += 1;
+      if (!node.nodeValue || !node.nodeValue.trim()) {
+        continue;
+      }
+      const parent = node.parentElement;
+      if (!parent || shouldSkipHighlightParent(parent)) {
+        continue;
+      }
+      regex.lastIndex = 0;
+      if (!regex.test(node.nodeValue)) {
+        continue;
       }
       nodes.push(node);
     }
@@ -2310,14 +2344,19 @@
 
   function downloadTextFile(filename, text, mimeType) {
     const blob = new Blob([text], { type: mimeType || "text/plain" });
-    const url = URL.createObjectURL(blob);
+    const canUseObjectUrl = window.URL && typeof URL.createObjectURL === "function";
+    const url = canUseObjectUrl
+      ? URL.createObjectURL(blob)
+      : "data:" + encodeURIComponent(mimeType || "text/plain") + ";charset=utf-8," + encodeURIComponent(text);
     const link = document.createElement("a");
     link.href = url;
     link.download = filename;
     document.body.appendChild(link);
     link.click();
     link.remove();
-    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    if (canUseObjectUrl && typeof URL.revokeObjectURL === "function") {
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
   }
 
   function csvCell(value) {
@@ -2343,8 +2382,8 @@
   }
 
   function cssEscape(value) {
-    if (window.CSS && CSS.escape) {
-      return CSS.escape(value);
+    if (window.CSS && typeof window.CSS.escape === "function") {
+      return window.CSS.escape(value);
     }
     return String(value).replace(/"/g, '\\"');
   }
@@ -2397,6 +2436,9 @@
   }
 
   function addStyles() {
+    if (document.getElementById(APP.styleId)) {
+      return;
+    }
     const css = `
 #${APP.rootId}, #${APP.rootId} *, #${APP.focusOverlayId}, #${APP.focusOverlayId} *, #${APP.disabledId} {
   box-sizing: border-box;
@@ -2439,7 +2481,7 @@
   box-shadow: 0 10px 26px rgba(23, 32, 42, 0.22);
   transition: right 0.18s ease, box-shadow 0.18s ease;
 }
-.ptk-edge-tab:hover, .ptk-edge-tab:focus-visible {
+.ptk-edge-tab:hover, .ptk-edge-tab:focus, .ptk-edge-tab:focus-visible {
   right: 0;
   box-shadow: 0 12px 30px rgba(23, 32, 42, 0.28);
 }
@@ -2758,7 +2800,7 @@
   box-shadow: 0 10px 24px rgba(23, 32, 42, 0.2);
   transition: right 0.18s ease, box-shadow 0.18s ease;
 }
-#${APP.disabledId}:hover, #${APP.disabledId}:focus-visible {
+#${APP.disabledId}:hover, #${APP.disabledId}:focus, #${APP.disabledId}:focus-visible {
   right: 0;
   box-shadow: 0 12px 30px rgba(23, 32, 42, 0.26);
 }
@@ -2877,14 +2919,18 @@
 `;
     try {
       if (typeof GM_addStyle === "function") {
-        GM_addStyle(css);
+        const styleNode = GM_addStyle(css);
+        if (styleNode && styleNode.setAttribute) {
+          styleNode.setAttribute("id", APP.styleId);
+        }
         return;
       }
     } catch (error) {
       console.warn("Productivity Toolkit: GM_addStyle failed", error);
     }
     const style = document.createElement("style");
+    style.id = APP.styleId;
     style.textContent = css;
-    document.head.appendChild(style);
+    (document.head || document.documentElement).appendChild(style);
   }
 })();
