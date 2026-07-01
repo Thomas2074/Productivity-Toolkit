@@ -2,17 +2,17 @@
 
 Productivity Toolkit is a local-first Tampermonkey userscript that adds a small browser productivity suite to normal websites. It keeps settings and user data in Tampermonkey storage and does not require an external server or cloud service.
 
-Current version: `0.2.4`
+Current version: `0.2.6`
 
 ## Features
 
-- Floating `PT` launcher and draggable toolkit panel
-- Tucked side tab that slides out on hover or keyboard focus
+- Tucked toolbox-icon side tab that slides out on hover or keyboard focus
+- Draggable toolkit panel
 - Saved light and dark mode for the toolkit UI
 - Text expander for inputs, textareas, and basic contenteditable fields
 - Local quick notes with autosave and `.txt` export
 - FocusLock site blocking with manual sessions and recurring schedules
-- Pomodoro timer with launcher countdown and completed-session tracking
+- Pomodoro timer with side-tab countdown and completed-session tracking
 - Domain-level visible-time tracking with daily and weekly reports
 - One-click page highlights for selected text or typed phrases
 - Editable keyboard shortcuts
@@ -35,7 +35,7 @@ The script is designed to be local-first.
 2. Open `productivity_toolkit.user.js`.
 3. Copy the full script into a new Tampermonkey script.
 4. Save it.
-5. Visit any normal `http://` or `https://` website and click the tucked `PT` tab on the right edge of the page or the lower-right launcher.
+5. Visit any normal `http://` or `https://` website and click the tucked toolbox tab on the right edge of the page.
 
 ## Default Shortcuts
 
@@ -68,17 +68,25 @@ The userscript should remain single-file unless the project direction changes.
 - Avoid duplicate intervals, duplicate panel instances, and duplicate toast actions.
 - Bump the userscript `@version` and internal `APP.version` when changing behavior.
 
+## Testing
+
+At minimum, run a syntax check after edits:
+
+```powershell
+& 'C:\Users\Thomas\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin\node.exe' --check 'productivity_toolkit.user.js'
+```
+
 Recommended manual checks:
 
 - Panel opens, closes, drags, and resets position.
-- Tucked side tab is visible, slides out on hover/focus, and opens the panel.
+- Tucked toolbox tab is visible, slides out on hover/focus, and opens the panel.
 - Light and dark mode toggle correctly and persist after reload.
 - Notes autosave and export.
 - Snippets add, edit, delete, filter, and enable/disable.
 - Text expansion works in text inputs, textareas, and simple contenteditable fields.
 - Password and number inputs are not modified by text expansion.
 - FocusLock starts, stops, blocks listed domains, and respects schedules.
-- Pomodoro starts, pauses, resets, and updates the launcher countdown.
+- Pomodoro starts, pauses, resets, and updates the side-tab countdown.
 - Reports render today and current-week data, then export CSV.
 - Highlights can be added and cleared.
 - Shortcuts can be captured and reset.

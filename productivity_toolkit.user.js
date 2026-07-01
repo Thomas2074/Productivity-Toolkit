@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Productivity Toolkit
 // @namespace    local.productivity-toolkit
-// @version      0.2.4
+// @version      0.2.6
 // @description  Local-first browser productivity suite with notes, snippets, focus blocking, timer, reports, highlights, shortcuts, site rules, and backup/restore.
 // @author       Productivity Toolkit
 // @match        http://*/*
@@ -22,7 +22,7 @@
   window.__PRODUCTIVITY_TOOLKIT_BOOTED__ = true;
 
   const APP = {
-    version: "0.2.4",
+    version: "0.2.6",
     storageKey: "productivity_toolkit_state_v1",
     rootId: "ptk-root",
     disabledId: "ptk-disabled-launcher",
@@ -74,7 +74,6 @@
   let state = normalizeState(readStoredState());
   let root = null;
   let panel = null;
-  let launcher = null;
   let edgeTab = null;
   let toolkitStarted = false;
   let listenersBound = false;
@@ -388,7 +387,7 @@
     }
     root = null;
     panel = null;
-    launcher = null;
+    edgeTab = null;
     toolkitStarted = false;
   }
 
@@ -399,7 +398,7 @@
     const button = document.createElement("button");
     button.id = APP.disabledId;
     button.type = "button";
-    button.innerHTML = '<span>PT</span><small>Off</small>';
+    button.innerHTML = renderToolboxIcon() + "<small>Off</small>";
     button.setAttribute("aria-label", "Re-enable Productivity Toolkit on this site");
     button.title = "Productivity Toolkit is disabled on this site. Click to re-enable.";
     button.addEventListener("click", () => {
@@ -427,19 +426,14 @@
     root.dataset.theme = getTheme();
     root.innerHTML = [
       '<button type="button" class="ptk-edge-tab" data-action="toggle-panel" aria-label="Open Productivity Toolkit">',
-      '<span>PT</span>',
+      renderToolboxIcon(),
       '<small>Toolkit</small>',
-      "</button>",
-      '<button type="button" class="ptk-launcher" data-action="toggle-panel" aria-label="Open Productivity Toolkit">',
-      '<span class="ptk-launcher-mark">PT</span>',
-      '<small class="ptk-launcher-timer"></small>',
       "</button>",
       '<section class="ptk-panel" role="dialog" aria-label="Productivity Toolkit"></section>',
       '<div class="ptk-toast" aria-live="polite"></div>'
     ].join("");
     document.body.appendChild(root);
 
-    launcher = root.querySelector(".ptk-launcher");
     edgeTab = root.querySelector(".ptk-edge-tab");
     panel = root.querySelector(".ptk-panel");
 
@@ -449,12 +443,22 @@
     root.addEventListener("pointerdown", handleDragStart);
   }
 
+  function renderToolboxIcon() {
+    return [
+      '<svg class="ptk-toolbox-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">',
+      '<path d="M9 6V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v1"></path>',
+      '<rect x="3" y="6" width="18" height="14" rx="2"></rect>',
+      '<path d="M3 11h18"></path>',
+      '<path d="M10 11v2h4v-2"></path>',
+      "</svg>"
+    ].join("");
+  }
+
   function renderPanel() {
-    if (!panel || !launcher) {
+    if (!panel) {
       return;
     }
 
-    launcher.setAttribute("aria-expanded", state.ui.open ? "true" : "false");
     if (edgeTab) {
       edgeTab.setAttribute("aria-expanded", state.ui.open ? "true" : "false");
     }
@@ -2075,17 +2079,17 @@
   }
 
   function updateLauncher() {
-    if (!launcher) {
+    if (!edgeTab) {
       return;
     }
-    const timer = launcher.querySelector(".ptk-launcher-timer");
-    if (!timer) {
+    const label = edgeTab.querySelector("small");
+    if (!label) {
       return;
     }
     if (state.pomodoro.running && isFeatureEnabled("pomodoro")) {
-      timer.textContent = formatCountdown(getPomodoroRemainingMs());
+      label.textContent = formatCountdown(getPomodoroRemainingMs());
     } else {
-      timer.textContent = "";
+      label.textContent = "Toolkit";
     }
   }
 
@@ -2439,35 +2443,20 @@
   right: 0;
   box-shadow: 0 12px 30px rgba(23, 32, 42, 0.28);
 }
-.ptk-edge-tab span {
-  font-weight: 800;
-  font-size: 14px;
+.ptk-toolbox-icon {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 .ptk-edge-tab small {
   font-size: 11px;
   font-weight: 700;
   white-space: nowrap;
-}
-.ptk-launcher {
-  position: fixed;
-  right: 18px;
-  bottom: 18px;
-  width: 54px;
-  min-height: 54px !important;
-  border-radius: 50% !important;
-  display: grid;
-  place-items: center;
-  gap: 0;
-  border: 1px solid #5f7f9d !important;
-  box-shadow: 0 10px 26px rgba(23, 32, 42, 0.22);
-}
-.ptk-launcher-mark {
-  font-weight: 800;
-  font-size: 15px;
-}
-.ptk-launcher-timer {
-  font-size: 10px;
-  color: #526579;
 }
 .ptk-panel {
   position: fixed;
@@ -2773,9 +2762,6 @@
   right: 0;
   box-shadow: 0 12px 30px rgba(23, 32, 42, 0.26);
 }
-#${APP.disabledId} span {
-  font-weight: 800;
-}
 #${APP.disabledId} small {
   font-size: 11px;
   font-weight: 700;
@@ -2794,15 +2780,11 @@
 #${APP.rootId}[data-theme="dark"] button:hover {
   background: #263648;
 }
-#${APP.rootId}[data-theme="dark"] .ptk-edge-tab,
-#${APP.rootId}[data-theme="dark"] .ptk-launcher {
+#${APP.rootId}[data-theme="dark"] .ptk-edge-tab {
   border-color: #6c8aae !important;
   background: #1b2633;
   color: #f8fafc;
   box-shadow: 0 10px 26px rgba(0, 0, 0, 0.38);
-}
-#${APP.rootId}[data-theme="dark"] .ptk-launcher-timer {
-  color: #c4d3e2;
 }
 #${APP.rootId}[data-theme="dark"] .ptk-panel {
   background: #101820;
