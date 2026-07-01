@@ -68,14 +68,6 @@ The userscript should remain single-file unless the project direction changes.
 - Avoid duplicate intervals, duplicate panel instances, and duplicate toast actions.
 - Bump the userscript `@version` and internal `APP.version` when changing behavior.
 
-## Testing
-
-At minimum, run a syntax check after edits:
-
-```powershell
-& 'C:\Users\Thomas\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin\node.exe' --check 'productivity_toolkit.user.js'
-```
-
 Recommended manual checks:
 
 - Panel opens, closes, drags, and resets position.
