@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Productivity Toolkit
 // @namespace    local.productivity-toolkit
-// @version      0.2.7
+// @version      0.2.8
 // @description  Local-first browser productivity suite with notes, snippets, focus blocking, timer, reports, highlights, shortcuts, site rules, and backup/restore.
 // @author       Productivity Toolkit
 // @match        http://*/*
@@ -30,7 +30,7 @@
   }
 
   const APP = {
-    version: "0.2.7",
+    version: "0.2.8",
     storageKey: "productivity_toolkit_state_v1",
     styleId: "ptk-style",
     rootId: "ptk-root",
@@ -2478,10 +2478,12 @@
   padding: 8px 10px 8px 12px !important;
   border-radius: 8px 0 0 8px !important;
   border: 1px solid #5f7f9d !important;
+  background: #e9edf2 !important;
   box-shadow: 0 10px 26px rgba(23, 32, 42, 0.22);
   transition: right 0.18s ease, box-shadow 0.18s ease;
 }
 .ptk-edge-tab:hover, .ptk-edge-tab:focus, .ptk-edge-tab:focus-visible {
+  background: #dde5ee !important;
   right: 0;
   box-shadow: 0 12px 30px rgba(23, 32, 42, 0.28);
 }
@@ -2796,11 +2798,12 @@
   padding: 8px 10px 8px 12px;
   border-radius: 8px 0 0 8px;
   border-color: #b56c5b;
-  background: #fff7f5;
+  background: #ece7e5;
   box-shadow: 0 10px 24px rgba(23, 32, 42, 0.2);
   transition: right 0.18s ease, box-shadow 0.18s ease;
 }
 #${APP.disabledId}:hover, #${APP.disabledId}:focus, #${APP.disabledId}:focus-visible {
+  background: #e3d8d4;
   right: 0;
   box-shadow: 0 12px 30px rgba(23, 32, 42, 0.26);
 }
@@ -2824,7 +2827,7 @@
 }
 #${APP.rootId}[data-theme="dark"] .ptk-edge-tab {
   border-color: #6c8aae !important;
-  background: #1b2633;
+  background: #1b2633 !important;
   color: #f8fafc;
   box-shadow: 0 10px 26px rgba(0, 0, 0, 0.38);
 }

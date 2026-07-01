@@ -2,7 +2,7 @@
 
 Productivity Toolkit is a local-first Tampermonkey userscript that adds a small browser productivity suite to normal websites. It keeps settings and user data in Tampermonkey storage and does not require an external server or cloud service.
 
-Current version: `0.2.7`
+Current version: `0.2.8`
 
 ## Features
 
