@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Productivity Toolkit
 // @namespace    local.productivity-toolkit
-// @version      0.2.3
+// @version      0.2.4
 // @description  Local-first browser productivity suite with notes, snippets, focus blocking, timer, reports, highlights, shortcuts, site rules, and backup/restore.
 // @author       Productivity Toolkit
 // @match        http://*/*
@@ -22,7 +22,7 @@
   window.__PRODUCTIVITY_TOOLKIT_BOOTED__ = true;
 
   const APP = {
-    version: "0.2.3",
+    version: "0.2.4",
     storageKey: "productivity_toolkit_state_v1",
     rootId: "ptk-root",
     disabledId: "ptk-disabled-launcher",
@@ -75,6 +75,7 @@
   let root = null;
   let panel = null;
   let launcher = null;
+  let edgeTab = null;
   let toolkitStarted = false;
   let listenersBound = false;
   let pomodoroInterval = null;
@@ -93,7 +94,8 @@
       ui: {
         open: false,
         activeTab: "notes",
-        position: null
+        position: null,
+        theme: "light"
       },
       snippets: [
         {
@@ -155,6 +157,7 @@
     if (isPlainObject(raw.ui)) {
       next.ui.open = Boolean(raw.ui.open);
       next.ui.activeTab = typeof raw.ui.activeTab === "string" ? raw.ui.activeTab : defaults.ui.activeTab;
+      next.ui.theme = raw.ui.theme === "dark" ? "dark" : "light";
       if (isPlainObject(raw.ui.position) && Number.isFinite(raw.ui.position.left) && Number.isFinite(raw.ui.position.top)) {
         next.ui.position = {
           left: clamp(raw.ui.position.left, 0, Math.max(0, window.innerWidth - 80)),
@@ -396,7 +399,8 @@
     const button = document.createElement("button");
     button.id = APP.disabledId;
     button.type = "button";
-    button.textContent = "PT Off";
+    button.innerHTML = '<span>PT</span><small>Off</small>';
+    button.setAttribute("aria-label", "Re-enable Productivity Toolkit on this site");
     button.title = "Productivity Toolkit is disabled on this site. Click to re-enable.";
     button.addEventListener("click", () => {
       const rule = ensureSiteRule(currentDomain);
@@ -420,7 +424,12 @@
 
     root = document.createElement("div");
     root.id = APP.rootId;
+    root.dataset.theme = getTheme();
     root.innerHTML = [
+      '<button type="button" class="ptk-edge-tab" data-action="toggle-panel" aria-label="Open Productivity Toolkit">',
+      '<span>PT</span>',
+      '<small>Toolkit</small>',
+      "</button>",
       '<button type="button" class="ptk-launcher" data-action="toggle-panel" aria-label="Open Productivity Toolkit">',
       '<span class="ptk-launcher-mark">PT</span>',
       '<small class="ptk-launcher-timer"></small>',
@@ -431,6 +440,7 @@
     document.body.appendChild(root);
 
     launcher = root.querySelector(".ptk-launcher");
+    edgeTab = root.querySelector(".ptk-edge-tab");
     panel = root.querySelector(".ptk-panel");
 
     root.addEventListener("click", handleRootClick);
@@ -445,6 +455,9 @@
     }
 
     launcher.setAttribute("aria-expanded", state.ui.open ? "true" : "false");
+    if (edgeTab) {
+      edgeTab.setAttribute("aria-expanded", state.ui.open ? "true" : "false");
+    }
     panel.hidden = !state.ui.open;
     updateLauncher();
     if (!state.ui.open) {
@@ -462,11 +475,14 @@
       ["site", "Site"],
       ["backup", "Backup"]
     ];
+    const theme = getTheme();
+    const themeButtonLabel = theme === "dark" ? "Light" : "Dark";
 
     panel.innerHTML = [
       '<header class="ptk-header" data-drag-handle>',
       '<div><strong>Productivity Toolkit</strong><span>v' + escapeHtml(APP.version) + "</span></div>",
       '<div class="ptk-header-actions">',
+      '<button type="button" class="ptk-icon-button" data-action="toggle-theme" title="Switch to ' + escapeAttr(themeButtonLabel.toLowerCase()) + ' mode">' + escapeHtml(themeButtonLabel) + "</button>",
       '<button type="button" class="ptk-icon-button" data-action="reset-position" title="Reset panel position">Reset</button>',
       '<button type="button" class="ptk-icon-button" data-action="close-panel" title="Close panel">Close</button>',
       "</div>",
@@ -792,6 +808,9 @@
         break;
       case "reset-position":
         resetPanelPosition();
+        break;
+      case "toggle-theme":
+        toggleTheme();
         break;
       case "export-notes":
         exportNotes();
@@ -1884,6 +1903,7 @@
       if (!toolkitStarted) {
         startToolkit();
       }
+      applyTheme();
       renderPanel();
       startIntervals();
       checkSchedules();
@@ -1912,6 +1932,24 @@
     state.ui.open = !state.ui.open;
     saveState();
     renderPanel();
+  }
+
+  function getTheme() {
+    return state.ui && state.ui.theme === "dark" ? "dark" : "light";
+  }
+
+  function applyTheme() {
+    if (root) {
+      root.dataset.theme = getTheme();
+    }
+  }
+
+  function toggleTheme() {
+    state.ui.theme = getTheme() === "dark" ? "light" : "dark";
+    applyTheme();
+    saveState();
+    renderPanel();
+    toast("Switched to " + getTheme() + " mode.");
   }
 
   function openPanel(tab) {
@@ -2381,6 +2419,35 @@
 #${APP.rootId} button:hover, #${APP.disabledId}:hover {
   background: #eef4fb;
 }
+.ptk-edge-tab {
+  position: fixed;
+  top: 50%;
+  right: -76px;
+  transform: translateY(-50%);
+  width: 112px;
+  min-height: 46px !important;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px 8px 12px !important;
+  border-radius: 8px 0 0 8px !important;
+  border: 1px solid #5f7f9d !important;
+  box-shadow: 0 10px 26px rgba(23, 32, 42, 0.22);
+  transition: right 0.18s ease, box-shadow 0.18s ease;
+}
+.ptk-edge-tab:hover, .ptk-edge-tab:focus-visible {
+  right: 0;
+  box-shadow: 0 12px 30px rgba(23, 32, 42, 0.28);
+}
+.ptk-edge-tab span {
+  font-weight: 800;
+  font-size: 14px;
+}
+.ptk-edge-tab small {
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
 .ptk-launcher {
   position: fixed;
   right: 18px;
@@ -2686,14 +2753,130 @@
 #${APP.disabledId} {
   position: fixed;
   z-index: 2147483000;
-  right: 18px;
-  bottom: 18px;
+  top: 50%;
+  right: -70px;
+  bottom: auto;
+  transform: translateY(-50%);
+  width: 106px;
+  min-height: 46px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px 8px 12px;
+  border-radius: 8px 0 0 8px;
   border-color: #b56c5b;
   background: #fff7f5;
   box-shadow: 0 10px 24px rgba(23, 32, 42, 0.2);
+  transition: right 0.18s ease, box-shadow 0.18s ease;
+}
+#${APP.disabledId}:hover, #${APP.disabledId}:focus-visible {
+  right: 0;
+  box-shadow: 0 12px 30px rgba(23, 32, 42, 0.26);
+}
+#${APP.disabledId} span {
+  font-weight: 800;
+}
+#${APP.disabledId} small {
+  font-size: 11px;
+  font-weight: 700;
 }
 .ptk-dragging, .ptk-dragging * {
   user-select: none !important;
+}
+#${APP.rootId}[data-theme="dark"] {
+  color: #edf3f8;
+}
+#${APP.rootId}[data-theme="dark"] button {
+  border-color: #53677c;
+  background: #1b2633;
+  color: #edf3f8;
+}
+#${APP.rootId}[data-theme="dark"] button:hover {
+  background: #263648;
+}
+#${APP.rootId}[data-theme="dark"] .ptk-edge-tab,
+#${APP.rootId}[data-theme="dark"] .ptk-launcher {
+  border-color: #6c8aae !important;
+  background: #1b2633;
+  color: #f8fafc;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.38);
+}
+#${APP.rootId}[data-theme="dark"] .ptk-launcher-timer {
+  color: #c4d3e2;
+}
+#${APP.rootId}[data-theme="dark"] .ptk-panel {
+  background: #101820;
+  border-color: #43566b;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.48);
+}
+#${APP.rootId}[data-theme="dark"] .ptk-header {
+  background: #0b1118;
+  color: #f8fafc;
+}
+#${APP.rootId}[data-theme="dark"] .ptk-header span {
+  color: #b8c7d7;
+}
+#${APP.rootId}[data-theme="dark"] .ptk-header .ptk-icon-button {
+  background: #1b2633;
+  border-color: #53677c;
+  color: #edf3f8;
+}
+#${APP.rootId}[data-theme="dark"] .ptk-tabs {
+  background: #172231;
+  border-color: #34475c;
+}
+#${APP.rootId}[data-theme="dark"] .ptk-tabs button {
+  color: #dbe5ee;
+}
+#${APP.rootId}[data-theme="dark"] .ptk-tabs button[aria-current="page"] {
+  background: #243247;
+  border-color: #526a85;
+  color: #ffffff;
+}
+#${APP.rootId}[data-theme="dark"] .ptk-section-title span,
+#${APP.rootId}[data-theme="dark"] .ptk-muted,
+#${APP.rootId}[data-theme="dark"] .ptk-empty {
+  color: #aab8c7;
+}
+#${APP.rootId}[data-theme="dark"] .ptk-subpanel,
+#${APP.rootId}[data-theme="dark"] .ptk-list-item,
+#${APP.rootId}[data-theme="dark"] .ptk-timer-display,
+#${APP.rootId}[data-theme="dark"] .ptk-table {
+  background: #151f2b;
+  border-color: #34475c;
+  color: #edf3f8;
+}
+#${APP.rootId}[data-theme="dark"] .ptk-label,
+#${APP.rootId}[data-theme="dark"] .ptk-checkbox {
+  color: #edf3f8;
+}
+#${APP.rootId}[data-theme="dark"] input,
+#${APP.rootId}[data-theme="dark"] textarea,
+#${APP.rootId}[data-theme="dark"] select {
+  background: #0f1720;
+  border-color: #52667d;
+  color: #f8fafc;
+}
+#${APP.rootId}[data-theme="dark"] input::placeholder,
+#${APP.rootId}[data-theme="dark"] textarea::placeholder {
+  color: #8fa1b4;
+}
+#${APP.rootId}[data-theme="dark"] .ptk-danger-check {
+  background: #291819;
+  border-color: #76524f;
+}
+#${APP.rootId}[data-theme="dark"] .ptk-pill,
+#${APP.rootId}[data-theme="dark"] .ptk-kbd {
+  background: #27384c;
+  color: #edf3f8;
+}
+#${APP.rootId}[data-theme="dark"] .ptk-pill-active {
+  background: #123d2a;
+  color: #9ee8b8;
+}
+#${APP.rootId}[data-theme="dark"] .ptk-table th,
+#${APP.rootId}[data-theme="dark"] .ptk-table td {
+  border-color: #34475c;
 }
 @media (max-width: 520px) {
   .ptk-panel {

@@ -2,11 +2,13 @@
 
 Productivity Toolkit is a local-first Tampermonkey userscript that adds a small browser productivity suite to normal websites. It keeps settings and user data in Tampermonkey storage and does not require an external server or cloud service.
 
-Current version: `0.2.3`
+Current version: `0.2.4`
 
 ## Features
 
 - Floating `PT` launcher and draggable toolkit panel
+- Tucked side tab that slides out on hover or keyboard focus
+- Saved light and dark mode for the toolkit UI
 - Text expander for inputs, textareas, and basic contenteditable fields
 - Local quick notes with autosave and `.txt` export
 - FocusLock site blocking with manual sessions and recurring schedules
@@ -29,11 +31,11 @@ The script is designed to be local-first.
 
 ## Installation
 
-1. Install Tampermonkey in a Chromium-based browser or Firefox.
+1. Install a userscript manager such as Tampermonkey, Violentmonkey, or a Safari-compatible userscript manager.
 2. Open `productivity_toolkit.user.js`.
 3. Copy the full script into a new Tampermonkey script.
 4. Save it.
-5. Visit any normal `http://` or `https://` website and click the `PT` launcher in the lower-right corner.
+5. Visit any normal `http://` or `https://` website and click the tucked `PT` tab on the right edge of the page or the lower-right launcher.
 
 ## Default Shortcuts
 
@@ -68,9 +70,17 @@ The userscript should remain single-file unless the project direction changes.
 
 ## Testing
 
+At minimum, run a syntax check after edits:
+
+```powershell
+& 'C:\Users\Thomas\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin\node.exe' --check 'productivity_toolkit.user.js'
+```
+
 Recommended manual checks:
 
 - Panel opens, closes, drags, and resets position.
+- Tucked side tab is visible, slides out on hover/focus, and opens the panel.
+- Light and dark mode toggle correctly and persist after reload.
 - Notes autosave and export.
 - Snippets add, edit, delete, filter, and enable/disable.
 - Text expansion works in text inputs, textareas, and simple contenteditable fields.
@@ -86,6 +96,7 @@ Recommended manual checks:
 ## Known Limitations
 
 - Browser autoplay policies may prevent the Pomodoro completion beep.
+- Userscripts cannot run on browser-owned pages such as `chrome://`, `edge://`, extension stores, and some built-in PDF/new-tab pages.
 - Contenteditable expansion is intentionally conservative and works best in simple editors.
 - Highlighting is designed for ordinary article/documentation pages and may avoid or limit very large or complex DOMs.
 - FocusLock blocks by domain and subdomain matching, not by full URL path.
